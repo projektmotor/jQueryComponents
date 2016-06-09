@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<blueprint  version="1.0"
+			apidoc=	"	Generates a javascript LightBox">
+			
+	
+	<construct>
+		<![CDATA[
+			/**
+			 * includes missing js/css files and copies them and necessary folders to the project
+			 */
+			function configPage(){
+				checkDefaults();
+				
+				checkHTMLStructure();
+
+				copyLibraryImages()
+				
+				checkCSSLinksAndReplaceImageURLs(	
+													[	
+														'jquery.fancybox-1.3.4.css', 
+														'default.css' 
+													]
+												);
+				
+				checkJSLinks(	
+								[	
+									'jquery-1.6.1.min.js',
+									'jquery.easing-1.3.pack.js', 
+									'jquery.mousewheel-3.0.4.pack.js',
+									'jquery.fancybox-1.3.4.pack.js' 
+								]
+							);
+				
+				checkPlainJS("$(\"a[rel^='lightbox']\").fancybox({){", "jQueryLightBox.insertScriptCode");
+			}
+		]]>
+	</construct>
+	
+	<forms>	
+		<form name="imageDescription">
+			<input type="text" name="text" label="layer Description"></input>
+		</form>
+	</forms>
+	
+	<structure>
+		<simplifier build="freestyle" accessName="lightbox" visibleName="Build Lightbox"
+					apidoc=" Generates a link to the image and the image itself together with an image tag">
+			<exec>
+				<![CDATA[ 
+						var input;
+						for each(var node in window.selectedHtmlElements()){
+							//run link simplifier
+							link = blueprint.call("lightBoxLink", [node], null, null).get(0);
+							
+							if(	link != null &&
+								link.getNodeName().equals("a") &&
+								link.getAttribute("class").equals('lightbox') ){
+								//run image tag simplifier 
+								blueprint.call("lightBoxTrigger", [link], null, null);
+							}
+							else{
+								window.alert("expected link tag, not '<"+link.toString()+">'");
+							}
+						}
+						
+						//make sure, page is configured properly
+						configPage();
+				]]>
+			</exec>
+		</simplifier>
+		
+		<a  class="lightbox" rel="lightbox01"
+			build="forward" accessName="lightBoxLink" visible="false">
+			<exec>
+				<![CDATA[ 
+					checkDefaults();
+					checkHTMLStructure();
+					
+					imgPath = project.defaultImagePath();
+					
+					//ask for view layer
+			 		var imageInput = window.showDialog("layerSelection", dialog.OK_ABORT, "", "Please select a Lightbox view layer image", "Select layer");
+			 		if(imageInput.pressedButton == dialog.OK){
+				 		var layer = imageInput.selectedLayers[0];
+						
+						if(layer == null){
+							window.alert("no layer selected. please select in drawpanel, not in layertree");
+							exit;
+						}
+						//ask for image path
+					 	var result = window.showDialog("projectBrowser", dialog.OK_ABORT, project.defaultImagePath(), "Please select/create a file for Lightbox view image file", "Select file");
+				      	var imgPath = result.selectedFiles[0];
+				 		
+				 		//set imagePath for link tag
+						insertedNode.setAttribute("href", io.relPath(document.path(), imgPath) );
+						
+				 		//set description text for link tag
+				 		form = window.showForm("imageDescription", dialog.OK_ABORT, "", "Enter description for trigger", layer.name());
+						if(form.pressedButton == dialog.OK){
+							insertedNode.setAttribute("title", form.text );
+						}
+						
+						//create image
+						layer.write(imgPath);
+					}
+				]]>
+			</exec>
+		</a>
+
+		<img build="forward" accessName="lightBoxTrigger" visible="false">
+			<exec>
+				<![CDATA[
+					checkDefaultImagePath();
+					checkDefaultJSPath();
+					
+					//ask for trigger layer
+			 		var imageInput = window.showDialog("layerSelection", dialog.OK_ABORT, "", "Please select a Lightbox trigger layer", "Select layer");
+			 		var layer = imageInput.selectedLayers[0];
+
+					//ask for image path
+				 	var result = window.showDialog("projectBrowser", dialog.OK_ABORT, project.defaultImagePath(), "Please select a file for Lightbox trigger image", "Select file");
+			      	var imgPath = result.selectedFiles[0];
+			 		
+			 		//set imagePath for img tag
+					insertedNode.setAttribute("src", io.relPath(document.path(), imgPath));
+					
+					//create image
+					layer.write(imgPath); 
+				]]>
+			</exec>
+		</img>
+		
+		<script type="text/javascript"
+				build="forward" accessName="insertScriptCode" visible="false">
+	            <![CDATA[ 
+					$(document).ready(function() {
+		                $("a[rel^='lightbox']").fancybox({
+		                    'transitionIn'	:	'elastic',
+		                    'transitionOut'	:	'elastic',
+		                    'overlayColor'  :   '#000',
+		                    'overlayOpacity':   '0.8'
+		                });
+		            });
+				]]>
+		</script>	
+	</structure>
+</blueprint>

@@ -1,0 +1,7 @@
+div#myCycle {
+    position: relative;
+    height: auto;
+    width: auto;
+    overflow: hidden;
+}
+
